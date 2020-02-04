@@ -1,0 +1,4 @@
+# FTDI USB <-> Serial device is used in emit MTR4
+# Use SUBSYSTEM=="tty" instead of SUBSYSTEMS=="usb" to target the leaf tty
+# device only, avoiding multiple systemd service instances.
+ACTION=="add", SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="ttyMTR", MODE="0777", TAG+="systemd", ENV{SYSTEMD_WANTS}="mtrlogextractor@%k.service"

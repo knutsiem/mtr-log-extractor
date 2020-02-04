@@ -1,0 +1,16 @@
+[Unit]
+Description=Emit MTR Log Extractor service
+After=dev-%i.device
+BindsTo=dev-%i.device
+Requisite=dev-%i.device
+
+[Service]
+Environment=PYTHONUNBUFFERED=1
+WorkingDirectory=~
+User=pi
+ExecStartPre=-/opt/mtr-log-extractor/prestart.sh
+ExecStart=/opt/mtr-log-extractor/start.sh /dev/%i
+ExecStopPost=-/opt/mtr-log-extractor/poststop.sh
+
+[Install]
+WantedBy=dev-%i.device
