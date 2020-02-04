@@ -1,6 +1,6 @@
 # Installation instructions for use on Raspberry Pi
 
-mtr-log-extractor can be launched manually as described in the main README, but
+mtr-log-extractor can be launched manually as described in the [main README](../README), but
 this is not ideal in an in-the-field situation. This guide explains
 installation on a a Raspberry Pi with automatic launching when an MTR is
 connected, connecting to the mobile network, logging configuration and
@@ -24,13 +24,13 @@ they are they attempt to configure a system so that
 
 ## Technical solution
 
-The udev rule in [ftdi-mtr.rules] triggers when an MTR is connected. The rule
-starts a systemd service [mtrlogextractor@.service], which runs
-`mtr-log-extractor.py` via [start.sh]. Prior to starting, [prestart.sh] is run
+The udev rule in [`ftdi-mtr.rules`](ftdi-mtr.rules) triggers when an MTR is connected. The rule
+starts a systemd service [`mtrlogextractor@.service`](mtrlogextractor@.service), which runs
+`mtr-log-extractor.py` via [`start.sh`](start.sh). Prior to starting, [`prestart.sh`](prestart.sh) is run
 to connect to the mobile network (among other things). When the service has
-stopped, [poststop.sh] is run to disconnect from the mobile network and
+stopped, [`poststop.sh`](poststop.sh) is run to disconnect from the mobile network and
 schedule a shutdown to conserve battery power. To avoid shutting down if the
-MTR is re-connected before shutdown starts, [prestart.sh] cancels any scheduled
+MTR is re-connected before shutdown starts, `prestart.sh` cancels any scheduled
 shutdown. The systemd service is bound to the device so that it stops if the
 MTR is abruptly disconnected (proceeding to shutdown unless reconnected
 before).
@@ -38,7 +38,7 @@ before).
 
 ## Installation
 
-Follow instructions in main README.
+Follow instructions in [main README](../README.md).
 
 Enter dir:
 
