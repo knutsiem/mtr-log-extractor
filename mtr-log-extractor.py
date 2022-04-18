@@ -5,6 +5,7 @@ import logging
 import logging.handlers
 import os
 import serial
+import socket
 import sys
 from datetime import datetime, timedelta
 import requests
@@ -62,6 +63,15 @@ def create_argparser():
                 "default (using multiple values) 'syslog [SOCKET] [FACILITY]' "
                 "where SOCKET is '/dev/log' and FACILITY is 'local0' by "
                 "default."))
+    argparser.add_argument(
+            '--status-target-port',
+            metavar='PORT_NUMBER',
+            type=int,
+            help=(
+                "Local network port that -- if given -- status messages "
+                "will be sent to. Intended for simple output of status to "
+                "LED, display, sound device etc. States reported are "
+                "AWAITING_MTR, READING_MTR, UPLOADING and DONE."))
     return argparser
 
 
@@ -82,6 +92,16 @@ def initialize_logging():
         file_handler.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
         logger.addHandler(file_handler)
     return logger
+
+
+def report_program_status(port, status_message):
+    if port == None:
+        return
+    clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    clientsocket.connect(('localhost', port))
+    clientsocket.send(status_message)
+    clientsocket.close()
+    return
 
 
 def should_poll_mtr_for_status(timeout_uptime):
@@ -176,6 +196,9 @@ exit_code_serial_port_unresponsive = 100
 argparser = create_argparser()
 args = argparser.parse_args()
 logger = initialize_logging()
+status_target_port = args.status_target_port
+
+report_program_status(status_target_port, b'AWAITING_MTR')
 
 serial_port = serial_port_with_live_mtr(
         args.serial_port,
@@ -224,6 +247,8 @@ if destination_args[0] == 'dropbox':
 output_filename = (
         args.output_file_name.format(datetime.now().strftime('%Y%m%dT%H%M%S')))
 
+
+report_program_status(status_target_port, b'READING_MTR')
 mtr_reader.send_spool_all_command()
 data_messages = mtr_reader.receive()
 datetime_extracted = datetime.now()
@@ -231,6 +256,7 @@ log_lines = mtrlog.MtrLogFormatter().format_all(
         data_messages, datetime_extracted)
 mtr_log_file_name = write_mtr_log_file(log_lines, output_filename)
 
+report_program_status(status_target_port, b'UPLOADING')
 if destination_args[0] == 'dropbox':
     try:
         upload_dir = ""
@@ -248,3 +274,5 @@ else:
     except Exception:
         logger.exception(
                 "Error when uploading MTR log file using plain HTTP POST")
+
+report_program_status(status_target_port, b'DONE')

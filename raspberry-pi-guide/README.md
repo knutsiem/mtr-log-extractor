@@ -2,10 +2,10 @@
 
 mtr-log-extractor can be launched manually as described in the [main README](../README), but
 this is not ideal in an in-the-field situation. This guide explains
-installation on a a Raspberry Pi with automatic launching when an MTR is
-connected, connecting to the mobile network, logging configuration and
-automatic shutdown to conserve battery power. The actual Raspberry Pi used in
-the orignal development was powered by a [PiJuice
+installation on a Raspberry Pi with automatic launching when an MTR is
+connected, connecting to the mobile network, logging configuration, status
+indication via a LED and automatic shutdown to conserve battery power. The
+actual Raspberry Pi used in the orignal development was powered by a [PiJuice
 HAT](https://uk.pi-supply.com/products/pijuice-standard), so the installation
 template files include PiJuice-specific power management. The mobile network
 connection was made using a [Sixfab Raspberry Pi 4G/LTE Shield
@@ -35,6 +35,10 @@ shutdown. The systemd service is bound to the device so that it stops if the
 MTR is abruptly disconnected (proceeding to shutdown unless reconnected
 before).
 
+Another systemd service
+[`mtrlogextractor-led.service`](mtrlogextractor-led.service) starts
+independently and controls a LED attached via GPIO (port 24) to indicate
+extract/upload status.
 
 ## Installation
 
@@ -49,15 +53,15 @@ Add udev rule:
     sudo cp ftdi-mtr.rules /etc/udev/rules.d/
     sudo udevadm control --reload
 
-Add systemd service:
+Add systemd services:
 
-    sudo cp mtrlogextractor@.service /etc/systemd/system/
+    sudo cp mtrlogextractor@.service mtrlogextractor-led.service /etc/systemd/system/
     sudo systemctl daemon-reload
 
 Add lifecycle scripts:
 
     sudo mkdir /opt/mtr-log-extractor
-    sudo cp prestart.sh start.sh poststop.sh pijuice-poweroff.py /opt/mtr-log-extractor
+    sudo cp prestart.sh start.sh poststop.sh pijuice-poweroff.py status-led.py /opt/mtr-log-extractor
     sudo chmod +x /opt/mtr-log-extractor/*.*
 
 Modify scripts as necessary.

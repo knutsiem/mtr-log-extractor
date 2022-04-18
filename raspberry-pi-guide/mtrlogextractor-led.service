@@ -1,0 +1,10 @@
+[Unit]
+Description=Controller for MTR Log Extractor status LED
+
+[Service]
+Environment=PYTHONUNBUFFERED=1
+User=pi
+ExecStart=/usr/bin/python3 /opt/mtr-log-extractor/status-led.py
+
+[Install]
+WantedBy=multi-user.target
