@@ -73,11 +73,11 @@ Start test http upload server:
 
 Start mock MTR on one port:
 
-    ./devutil-mock-mtr.py /dev/pts/4
+    ./devutil-mockmtr.py /dev/pts/4
 
 or with data in file (recorded with devutil-recordmtrdata.py):
 
-    ./devutil-mock-mtr.py /dev/pts/4 -f mtr.bin
+    ./devutil-mockmtr.py /dev/pts/4 -f mtr.bin
 
 Start program on the other port:
 
@@ -92,7 +92,7 @@ or, using dropbox:
 
 `devutil-http-upload-server.py`: Starts a local HTTP server accepting uploads
 
-`devutil-mock-mtr.py`: Script that listens to a serial port and acts like an MTR
+`devutil-mockmtr.py`: Script that listens to a serial port and acts like an MTR
 
 `devutil-recordmtrdata.py`: Extracts and saves MTR data in raw/binary form
 
