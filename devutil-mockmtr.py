@@ -5,6 +5,7 @@ import random
 import serial
 from datetime import datetime, timedelta
 from tests.testmtrreader import MtrDataBytesBuilder
+import csv
 
 
 def create_argparser():
@@ -20,6 +21,14 @@ def create_argparser():
             help=(
                 "Don't generate messages, but read from file. "
                 '(File can be created with devutil-recordmtrdata.py.)'))
+    argparser.add_argument(
+            '--file-format',
+            choices=['mtrbinary', 'mtrlogfile'], default='mtrbinary',
+            help=(
+                "Format of input file. 'mtrbinary' is the format emitted from "
+                "physical MTR units. 'mtrlogfile' is a textual "
+                "representation used in official programming interfaces and "
+                "the output format of MTR Log Extractor."))
     argparser.add_argument(
             '-v', '--verbose', action='store_true', help='Verbose output')
     return argparser
@@ -73,17 +82,80 @@ def respond_status(serial_port, mtr_id):
     print("Wrote {} bytes".format(num_bytes_written))
 
 
-def respond_with_file(serial_port, source_filename):
+def respond_with_file(serial_port, source_filename, source_fileformat):
+    if source_fileformat == 'mtrbinary':
+        respond_with_file_mtrbinary(serial_port, source_filename)
+    elif source_fileformat == 'mtrlogfile':
+        respond_with_file_mtrlogfile(serial_port, source_filename)
+    else:
+        print("Unexpected file format '{}'".format(source_fileformat))
+
+
+def respond_with_file_mtrbinary(serial_port, source_filename):
     with open(source_filename, 'rb') as source_file:
-        print("Opened file {}".format(source_filename))
+        print("Opened binary file {}".format(source_filename))
         data = source_file.read()
         print("Read {} bytes".format(len(data)))
         num_bytes_written = serial_port.write(data)
         print("Wrote {} bytes".format(num_bytes_written))
 
 
+def respond_with_file_mtrlogfile(serial_port, source_filename):
+    with open(source_filename, 'r', encoding='ascii') as source_file:
+        print("Opened MTR log file {}".format(source_filename))
+        parsed_data = csv.DictReader(
+            source_file,
+            fieldnames=[
+                'package_type',
+                'zero',
+                'mtr_id',
+                'card_id_string',
+                'datetime_extracted_string',
+                'datetime_read_string',
+                'card_id',
+                'product_week',
+                'product_year'
+            ], restkey='splits_and_more')
+        line_num = 0
+        for parsed_data_line in parsed_data:
+            line_num = line_num + 1
+            package_type = parsed_data_line['package_type']
+            if package_type != 'M':
+                print(
+                    "Encountered unknown package type {} at line {}"
+                    .format(package_type, line_num))
+                continue
+            mtr_id = int(parsed_data_line['mtr_id'].strip())
+            card_id = int(parsed_data_line['card_id'].strip())
+            datetime_read = datetime.strptime(
+                parsed_data_line['datetime_read_string'],
+                '%d.%m.%y %H:%M:%S.%f')
+            splits_and_more = parsed_data_line['splits_and_more']
+            if len(splits_and_more) < 100:
+                print(
+                    "Expected 50 split control/time pairs; found {} at line {}"
+                    .format(len(splits_and_more), line_num))
+                continue
+
+            splits = []
+            for i in range(0, 98, 2):
+                control = int(splits_and_more[i])
+                time = int(splits_and_more[i+1])
+                splits.append((control, time))
+
+            package_num = int(splits_and_more[100])
+
+            num_bytes_written = serial_port.write(
+                mtr_bytes(
+                    mtr_id=mtr_id, card_id=card_id, splits=splits,
+                    datetime_read=datetime_read, package_num=package_num))
+            print(
+                "Wrote message at line {} (package number {}, {} bytes)"
+                .format(line_num, package_num, num_bytes_written))
+
+
 def respond_with_generated(serial_port, mtr_id, n):
-    print("Generating {} messages".format(n, serial_port))
+    print("Generating {} messages".format(n))
 
     now = datetime.now()
     course_a = [0, 31, 32, 33, 34, 35, 102, 103, 104, 249]
@@ -127,6 +199,6 @@ while True:
         respond_status(test_serial, mtr_id)
     elif cmd == b'/SA':
         if args.file:
-            respond_with_file(test_serial, args.file)
+            respond_with_file(test_serial, args.file, args.file_format)
         else:
             respond_with_generated(test_serial, mtr_id, args.n)
