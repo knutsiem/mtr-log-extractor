@@ -95,7 +95,7 @@ def initialize_logging():
 
 
 def report_program_status(port, status_message):
-    if port == None:
+    if port is None:
         return
     clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     clientsocket.connect(('localhost', port))
